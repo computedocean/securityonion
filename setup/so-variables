@@ -1,0 +1,80 @@
+#!/bin/bash
+
+SOVERSION=$(cat ../VERSION)
+
+total_mem=$(grep MemTotal /proc/meminfo | awk '{print $2}' | sed -r 's/.{3}$//')
+export total_mem
+
+total_mem_hr=$(grep MemTotal /proc/meminfo | awk '{ printf("%.0f", $2/1024/1024); }')
+export total_mem_hr
+
+num_cpu_cores=$(nproc)
+export num_cpu_cores
+
+readarray -t cpu_core_list <<< "$(grep "processor" /proc/cpuinfo | grep -v "KVM" | awk '{print $3}')"
+export cpu_core_list
+
+random_uid=$(get_random_value 16)
+export random_uid
+
+node_es_port=9200
+export node_es_port
+
+setup_log="/root/sosetup.log"
+export setup_log
+
+error_log="/root/errors.log"
+export error_log
+
+filesystem_root=$(df / | awk '$3 ~ /[0-9]+/ { print $2 * 1000 }')
+export filesystem_root
+
+mkdir -p /nsm
+filesystem_nsm=$(df /nsm | awk '$3 ~ /[0-9]+/ { print $2 * 1000 }')
+export filesystem_nsm
+
+free_space_nsm=$(df -Pk /nsm | sed 1d | grep -v used | awk '{ print $4 / 1048576 }' | awk '{ printf("%.0f", $1) }')
+export free_space_nsm
+
+free_space_root=$(df -Pk / | sed 1d | grep -v used | awk '{ print $4 / 1048576 }' | awk '{ printf("%.0f", $1) }')
+export free_space_root
+
+readarray -t mountpoints <<< "$(lsblk -nlo MOUNTPOINT)"
+readarray -t partitions <<< "$(lsblk -nlo NAME)"
+index=0
+for item in "${mountpoints[@]}"; do
+    if [[ $item == '/' ]]; then export root_part="${partitions[$index]}"
+    elif [[ $item == '/nsm' ]]; then 
+        export nsm_mount=1
+        export nsm_part="${partitions[$index]}"
+    fi
+    ((index++))
+done
+
+mkdir -p /root/installtmp/pillar/minions
+export temp_install_dir=/root/installtmp
+
+export percentage_str='Getting started'
+
+export DEBIAN_FRONTEND=noninteractive
+
+export default_salt_dir=/opt/so/saltstack/default
+mkdir -p "$default_salt_dir"
+
+export local_salt_dir=/opt/so/saltstack/local
+mkdir -p "$local_salt_dir"
+
+SCRIPTDIR=$(pwd)
+export SCRIPTDIR
+
+install_opt_file=/root/install_opt
+export install_opt_file
+
+net_init_file=/root/net_init
+export net_init_file
+
+ntp_string="0.pool.ntp.org,1.pool.ntp.org"
+export ntp_string
+
+whiptail_title="Security Onion Setup - $SOVERSION"
+export whiptail_title
